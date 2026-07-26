@@ -3,8 +3,7 @@ import { toast } from "../../lib/toast";
 import { getUser } from "../../lib/auth";
 import { createPaste, getPaste, type Paste, type Visibility } from "../../lib/api";
 import SignInForm from "../SignInForm";
-
-const LANGUAGES = ["plaintext", "javascript", "typescript", "python", "json", "html", "css", "sql", "bash", "markdown", "yaml", "go", "rust", "java"];
+import LanguageSelect, { LANGUAGE_OPTIONS } from "../LanguageSelect";
 
 const VISIBILITIES: { value: Visibility; label: string; hint: string }[] = [
   { value: "public", label: "Public", hint: "Anyone with the link (no login)" },
@@ -14,9 +13,32 @@ const VISIBILITIES: { value: Visibility; label: string; hint: string }[] = [
 
 const EXPIRY_OPTIONS = [1, 7, 14, 30];
 
+function siteBase(): string {
+  return (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+}
+
 function baseUrl(): string {
-  const b = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
-  return `${b}/tools/pastebin`;
+  return `${siteBase()}/tools/pastebin`;
+}
+
+// The webalive tier gets the real wordmark instead of the word. Its "Web" half is
+// near-black, so the chip keeps a light plate in both themes — on the dark
+// background that half would otherwise disappear and leave a floating "Alive".
+function VisibilityBadge({ visibility }: { visibility: Visibility }) {
+  if (visibility === "webalive") {
+    return (
+      <span className="vis-badge vis-badge-logo" title="Visible to any signed-in @webalive.com.au user">
+        <img src={`${siteBase()}/webalive-logo.png`} alt="Webalive" width={76} height={13} />
+      </span>
+    );
+  }
+  const hint =
+    visibility === "public" ? "Anyone with the link, no login required" : "Only you can open this";
+  return (
+    <span className="vis-badge" title={hint}>
+      {visibility}
+    </span>
+  );
 }
 
 export default function Pastebin() {
@@ -135,11 +157,7 @@ function PasteCreate() {
         </Field>
 
         <Field label="Language">
-          <select value={language} onChange={(e) => setLanguage(e.target.value)} className="tool-input w-full px-3 py-2 text-sm">
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
+          <LanguageSelect value={language} onChange={setLanguage} />
         </Field>
 
         <Field label="Expires after (max 30 days)">
@@ -180,6 +198,37 @@ function PasteView({ id }: { id: string }) {
   const [paste, setPaste] = useState<Paste | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  async function copyContent() {
+    if (!paste) return;
+    try {
+      await navigator.clipboard.writeText(paste.content);
+      setCopied(true);
+      toast("Copied");
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      toast("Clipboard blocked by the browser", "error");
+    }
+  }
+
+  // Press "c" to copy. Ignored while typing, and with a modifier held so the
+  // native Ctrl/Cmd+C still copies whatever the user actually selected.
+  useEffect(() => {
+    if (!paste) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "c" && e.key !== "C") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (window.getSelection()?.toString()) return;
+      e.preventDefault();
+      copyContent();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paste]);
 
   async function load() {
     setLoading(true);
@@ -230,16 +279,66 @@ function PasteView({ id }: { id: string }) {
   if (!paste) return null;
 
   const expires = new Date(paste.expires_at);
+  const lang = LANGUAGE_OPTIONS.find((o) => o.value === paste.language) ?? LANGUAGE_OPTIONS[0];
+  const days = Math.max(0, Math.ceil((expires.getTime() - Date.now()) / 86_400_000));
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>{paste.title || "Untitled paste"}</h2>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ background: "var(--bg-subtle)", color: "var(--text-muted)" }}>{paste.visibility}</span>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: "var(--bg-subtle)", color: "var(--text-muted)" }}>{paste.language}</span>
-        <div className="ml-auto flex gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-          <span>expires {expires.toLocaleDateString()}</span>
-          <button onClick={() => navigator.clipboard.writeText(paste.content).then(() => toast("Copied"))} style={{ color: "var(--brand)" }}>Copy</button>
-          <a href={baseUrl()} style={{ color: "var(--brand)" }}>New</a>
+        <VisibilityBadge visibility={paste.visibility} />
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-1 pr-2.5 text-[11px] font-medium"
+          style={{ background: "var(--bg-subtle)", color: "var(--text-muted)" }}
+        >
+          <span
+            className="lang-badge"
+            style={{
+              width: 16, height: 16, color: lang.color, fontSize: lang.mark.length > 2 ? 6 : 7.5,
+              background: `color-mix(in srgb, ${lang.color} 22%, transparent)`,
+            }}
+            aria-hidden="true"
+          >
+            {lang.mark}
+          </span>
+          {lang.label}
+        </span>
+
+        <div className="ml-auto flex items-center gap-2">
+          <span
+            className="text-xs whitespace-nowrap"
+            style={{ color: "var(--text-muted)" }}
+            title={`Expires ${expires.toLocaleString()}`}
+          >
+            expires in {days}d
+          </span>
+
+          <button
+            type="button"
+            onClick={copyContent}
+            className={`act-btn${copied ? " is-done" : ""}`}
+            aria-label="Copy paste content"
+          >
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V5a2 2 0 012-2h10" />
+              </svg>
+            )}
+            {copied ? "Copied" : "Copy"}
+            <kbd className="kbd">C</kbd>
+          </button>
+
+          <a href={baseUrl()} className="act-btn act-btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New
+          </a>
         </div>
       </div>
       <pre
