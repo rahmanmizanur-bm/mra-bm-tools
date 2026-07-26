@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* Dark mode driven by a `.dark` class on <html> (toggled + persisted in JS). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens - light is the default theme. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-card: 0.75rem;
+}
+
+/* Semantic colors as CSS vars so both themes share one component layer. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f7f8fa;
+  --panel: #ffffff;
+  --border: #e6e8eb;
+  --text: #1a1d21;
+  --text-muted: #6b7280;
+  --brand: #4f46e5;
+  --brand-hover: #4338ca;
+  --brand-fg: #ffffff;
+  --ring: #c7d2fe;
+}
+
+.dark {
+  --bg: #0d0f12;
+  --bg-subtle: #14171c;
+  --panel: #171a1f;
+  --border: #262b33;
+  --text: #e8eaed;
+  --text-muted: #9aa2ad;
+  --brand: #6366f1;
+  --brand-hover: #7c7ff2;
+  --brand-fg: #ffffff;
+  --ring: #3730a3;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Small reusable primitives (kept tiny - Tailwind does the rest inline). */
+.tool-input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0.5rem;
+}
+.tool-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* Global toast (see src/lib/toast.ts). Fixed stack, bottom-center, theme-aware. */
+#toast-root {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast-icon {
+  display: grid;
+  place-items: center;
+  height: 1.15rem;
+  width: 1.15rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+}
+.toast-success .toast-icon {
+  background: #22a06b;
+}
+.toast-error .toast-icon {
+  background: #e5484d;
+}
+.toast-info .toast-icon {
+  background: var(--brand);
+}

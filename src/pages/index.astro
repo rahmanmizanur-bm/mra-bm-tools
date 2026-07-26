@@ -1,0 +1,97 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { TOOLS } from "../lib/tools-registry.ts";
+
+const tools = TOOLS;
+const base = import.meta.env.BASE_URL.replace(/\/$/, ""); // no trailing slash; join with a leading slash
+---
+
+<BaseLayout>
+  <section class="mb-8 text-center">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color: var(--text)">
+      Everyday developer tools
+    </h1>
+    <p class="mx-auto mt-3 max-w-xl text-base" style="color: var(--text-muted)">
+      Simple, fast, and private. Everything runs in your browser - no sign-up, no server, no tracking.
+    </p>
+  </section>
+
+  <div class="mx-auto mb-8 max-w-md">
+    <input
+      id="tool-search"
+      type="search"
+      placeholder="Search tools…"
+      autocomplete="off"
+      class="tool-input w-full px-4 py-2.5 text-sm"
+      aria-label="Search tools"
+    />
+  </div>
+
+  <div id="tool-grid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      tools.map((tool) => {
+        const ready = tool.status === "ready";
+        const Wrapper = ready ? "a" : "div";
+        return (
+          <Wrapper
+            href={ready ? `${base}/tools/${tool.slug}` : undefined}
+            data-name={tool.name.toLowerCase()}
+            data-tags={tool.tags.join(" ")}
+            class:list={[
+              "tool-card group relative flex flex-col rounded-[var(--radius-card)] border p-5 transition-all",
+              ready ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md" : "opacity-60",
+            ]}
+            style="border-color: var(--border); background: var(--panel)"
+          >
+            <div class="mb-3 flex items-center gap-3">
+              <span
+                class="grid h-9 w-9 place-items-center rounded-lg"
+                style="background: var(--bg-subtle); color: var(--brand)"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d={tool.icon} />
+                </svg>
+              </span>
+              {!ready && (
+                <span
+                  class="ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  style="background: var(--bg-subtle); color: var(--text-muted)"
+                >
+                  Soon
+                </span>
+              )}
+            </div>
+            <h2 class="text-sm font-semibold" style="color: var(--text)">
+              {tool.name}
+            </h2>
+            <p class="mt-1 text-xs leading-relaxed" style="color: var(--text-muted)">
+              {tool.description}
+            </p>
+          </Wrapper>
+        );
+      })
+    }
+  </div>
+
+  <p id="no-results" class="mt-8 hidden text-center text-sm" style="color: var(--text-muted)">
+    No tools match your search.
+  </p>
+</BaseLayout>
+
+<script>
+  const input = document.getElementById("tool-search") as HTMLInputElement;
+  const cards = Array.from(document.querySelectorAll<HTMLElement>(".tool-card"));
+  const noResults = document.getElementById("no-results");
+
+  input?.addEventListener("input", () => {
+    const q = input.value.trim().toLowerCase();
+    let visible = 0;
+    cards.forEach((card) => {
+      const hay = (card.dataset.name ?? "") + " " + (card.dataset.tags ?? "");
+      const match = q === "" || hay.includes(q);
+      card.style.display = match ? "" : "none";
+      if (match) visible++;
+    });
+    noResults?.classList.toggle("hidden", visible > 0);
+  });
+</script>

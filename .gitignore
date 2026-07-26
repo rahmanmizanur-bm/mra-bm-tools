@@ -1,0 +1,36 @@
+# build output
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# local verification / scratch artifacts
+.playwright-mcp/
+*.screenshot.png
+text-gen-*.png
+logo-*.png
+toast-*.png
+editable-*.png
+
+# scratch images dropped in the repo root (not app assets — those live in public/)
+/1631347415190.jpg
+/home-light.png
+
+# claude / agent tooling
+.claude/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env / editor / os
+.env
+.env.production
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
