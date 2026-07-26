@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { READY_TOOLS, getTool } from "../../lib/tools-registry.ts";
-import TextGenerator from "../../components/tools/TextGenerator.tsx";
+import ToolHost from "../../components/ToolHost.tsx";
 
 export function getStaticPaths() {
   return READY_TOOLS.map((tool) => ({ params: { slug: tool.slug } }));
@@ -27,6 +27,7 @@ if (!tool) return Astro.redirect(`${base}/404`);
     <p class="mt-1.5 max-w-2xl text-sm" style="color: var(--text-muted)">{tool.description}</p>
   </div>
 
-  {/* One line per ready tool - statically analyzable so Astro can hydrate the island. */}
-  {tool.slug === "text-generator" && <TextGenerator client:only="react" />}
+  {/* One island gates + renders every tool by slug. */}
+  <ToolHost slug={tool.slug} client:only="react" />
+
 </BaseLayout>
