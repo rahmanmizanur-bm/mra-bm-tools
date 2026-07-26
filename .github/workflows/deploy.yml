@@ -25,7 +25,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Astro inlines PUBLIC_* at build time, so these must be present HERE —
+      # setting the repository variables alone does nothing without this block.
+      # Not secrets: the anon key is meant to reach the browser and RLS is what
+      # guards the data.
       - run: npm run build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PUBLIC_SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
