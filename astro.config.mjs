@@ -2,11 +2,12 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
-// Project page: https://rahmanmizanur-bm.github.io/mra-bm-tools/
-// `base` must match the repo name so assets/routes resolve under the subpath.
+// Served from the custom domain https://mra.bro.bd/ (see public/CNAME, which has to
+// ship inside the dist artifact because this deploys via upload-pages-artifact).
+// No `base`: on a custom apex the site lives at /, not /<repo>. Adding one back
+// would prefix every route and asset and 404 the whole site.
 export default defineConfig({
-  site: 'https://rahmanmizanur-bm.github.io',
-  base: '/mra-bm-tools',
+  site: 'https://mra.bro.bd',
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
